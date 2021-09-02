@@ -12,4 +12,5 @@ Things I learn in the course of this project:
  - Grounded my knowledge of computational complexity (This program does not work in a satisfactory manner with less efficient implementation of algorithms.)
 
 TODO:
+ - A lot...
  - Improve the front end look a lot
