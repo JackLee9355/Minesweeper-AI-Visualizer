@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Minesweeper AI</title>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<script src="./minesweeper.js" type="text/javascript"></script>
+		<script type="text/javascript">
+
+			let board = null;
+			let aiWorker = null;
+
+			function newGame(numRows, numColumns, mines) {
+				rows = numRows;
+				columns = numColumns;
+				let tableDiv = document.getElementById('board');
+				let table = document.createElement('table');
+				table.setAttribute('id', 'boardTable');
+
+				let boardArr = [];
+				for(let row = 0; row < rows; row++) {
+					let tableRow = document.createElement('tr');
+					boardArr[row] = [];
+					for(let column = 0; column < columns; column++) {
+						let cell = document.createElement('td');
+						cell.setAttribute('row', row);
+						cell.setAttribute('column', column);
+						let location = new Location(row, column, false, 0, false);
+						cell.innerText = '?';
+						cell.setAttribute('onclick', 'cellClick(this);');
+						boardArr[row][column] = location;
+						tableRow.appendChild(cell);
+					}
+					table.appendChild(tableRow);
+				}
+				board = new Board(boardArr);
+
+				let oldTable = document.getElementById('boardTable');
+				if(oldTable != null) {
+					tableDiv.replaceChild(table, oldTable);
+				} else {
+					tableDiv.appendChild(table)
+				}
+
+				board.distributeMines(mines);
+
+				return tableDiv;
+			}
+
+			function getLocationElement(location) {
+				let table = document.getElementById('boardTable');
+				return table.rows[location.row].cells[location.col];
+			}
+
+			function cellClick(cellClicked) {
+				let toReveal = board.getSquaresToReveal(board.arr[cellClicked.getAttribute('row')][cellClicked.getAttribute('column')]);
+				toReveal.forEach(location => {
+					getLocationElement(location).innerText = location.isMine ? 'M' : location.adjacentMines;
+				});
+			}
+
+			function startAi(maxDepth) {
+				if(aiWorker != null) {
+					aiWorker.terminate();
+				}
+				aiWorker = new Worker('./minesweeperAI.js');
+				aiWorker.onmessage = onMessage;
+				aiWorker.postMessage({action:'START', boardArr:board.arr, maxDepth:maxDepth});
+			}
+
+			function onMessage(message) {
+				if(message.data.action == 'UPDATE_ODDS') {
+					let tempBoard = message.data.boardArr;
+					console.log('New board received.');
+					for(let row = 0; row < board.rows; row++) {
+						for(let col = 0; col < board.cols; col++) {
+							if(!tempBoard[row][col].isRevealed) {
+								let red = Math.round(tempBoard[row][col].odds * 255);
+								let blue = 255 - red;
+								let rgb = 'rgb(' + red + ',0,' + blue +')';
+								getLocationElement(tempBoard[row][col]).style.backgroundColor = rgb;
+							}
+						}
+					}
+				} else if(message.data.action == 'FINISH') {
+					console.log('Terminating AI worker.')
+					aiWorker.terminate();
+					aiWorker = null;
+				}
+			}
+
+		</script>
+	</head>
+	<body>
+		<input type="text" id="rowInput">Rows: </input>
+		<input type="text" id="columnInput">Columns</input>
+		<input type="text" id="mineInput">Mines</input>
+		<button onclick="newGame(document.getElementById('rowInput').value,
+			document.getElementById('columnInput').value,
+			document.getElementById('mineInput').value);">
+			New Game
+		</button>
+		<input type="text" id="maxDepth">Max Depth</input>
+		<button onclick="startAi(document.getElementById('maxDepth').value);">
+			Start Ai
+		</button>
+		<div id="board">
+		</div>
+	</body>
+</html>
