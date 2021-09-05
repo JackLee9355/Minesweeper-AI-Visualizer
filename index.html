@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		
 		<title>Minesweeper AI</title>
 		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<link rel="stylesheet" href="./main.css">
+
 		<script src="./minesweeper.js" type="text/javascript"></script>
+		<script src="./minesweeperAI.js" type="text/javascript"></script>
 		<script type="text/javascript">
 
 			let board = null;
@@ -15,6 +19,7 @@
 				let tableDiv = document.getElementById('board');
 				let table = document.createElement('table');
 				table.setAttribute('id', 'boardTable');
+				table.setAttribute('class', 'board-table');
 
 				let boardArr = [];
 				for(let row = 0; row < rows; row++) {
@@ -24,6 +29,7 @@
 						let cell = document.createElement('td');
 						cell.setAttribute('row', row);
 						cell.setAttribute('column', column);
+						cell.setAttribute('class', 'board-cell');
 						let location = new Location(row, column, false, 0, false);
 						cell.innerText = '?';
 						cell.setAttribute('onclick', 'cellClick(this);');
@@ -58,17 +64,17 @@
 				});
 			}
 
-			function startAi(maxDepth) {
+			function startAi(maxDepth, useOverallRule) {
 				if(aiWorker != null) {
 					aiWorker.terminate();
 				}
 				aiWorker = new Worker('./minesweeperAI.js');
 				aiWorker.onmessage = onMessage;
-				aiWorker.postMessage({action:'START', boardArr:board.arr, maxDepth:maxDepth});
+				aiWorker.postMessage({action:'START', boardArr:board.arr, maxDepth:maxDepth, useOverallRule:useOverallRule});
 			}
 
 			function onMessage(message) {
-				if(message.data.action == 'UPDATE_ODDS') {
+				if(message.data.action == 'NEW_RULES') {
 					let tempBoard = message.data.boardArr;
 					console.log('New board received.');
 					for(let row = 0; row < board.rows; row++) {
@@ -77,7 +83,7 @@
 								let red = Math.round(tempBoard[row][col].odds * 255);
 								let blue = 255 - red;
 								let rgb = 'rgb(' + red + ',0,' + blue +')';
-								getLocationElement(tempBoard[row][col]).style.backgroundColor = rgb;
+								getLocationElement(tempBoard[row][col]).style.color = rgb;
 							}
 						}
 					}
@@ -91,19 +97,69 @@
 		</script>
 	</head>
 	<body>
-		<input type="text" id="rowInput">Rows: </input>
-		<input type="text" id="columnInput">Columns</input>
-		<input type="text" id="mineInput">Mines</input>
+		<br>
+		<table>
+			<tr>
+				<td>
+					Rows:
+				</td>
+				<td>
+					Columns:
+				</td>
+				<td>
+					Mines:
+				</td>
+				<td>
+					Max AI Depth:
+				</td>
+				<td>
+					Overall Rule:
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<input type="text" id="rowInput" value="12"></input>
+				</td>
+				<td>
+					<input type="text" id="columnInput" value="12"></input>
+				</td>
+				<td>
+					<input type="text" id="mineInput" value="30"></input>
+				</td>
+				<td>
+					<input type="text" id="maxDepth" value="4"></input>
+				</td>
+				<td>
+					<input type="checkbox" id="overallRule"></input>
+				</td>
+			</tr>
+		</table>
 		<button onclick="newGame(document.getElementById('rowInput').value,
 			document.getElementById('columnInput').value,
 			document.getElementById('mineInput').value);">
 			New Game
 		</button>
-		<input type="text" id="maxDepth">Max Depth</input>
-		<button onclick="startAi(document.getElementById('maxDepth').value);">
+		<button onclick="startAi(document.getElementById('maxDepth').value,
+		 	document.getElementById('overallRule').checked);">
 			Start Ai
 		</button>
-		<div id="board">
-		</div>
+		<br>
+		<br>
+		<table>
+			<tr>
+				<td>
+					<div id="board">
+					</div>
+				</td>
+				<td>
+					Other Info will go here.
+				</td>
+			</tr>
+		</table>
 	</body>
+
+	<script>
+		// Set up the default board.
+		newGame(12, 12, 30);
+	</script>
 </html>

@@ -1,0 +1,47 @@
+body {
+    background-color: lightgray;
+    font-family: sans-serif;
+    text-align: center;
+}
+
+table {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.board-table {
+    background-color: white;
+}
+
+.board-cell {
+    height: 25px;
+    width: 25px;
+    border-left: 2px solid lightgray;
+    border-top: 2px solid lightgray;
+}
+
+.safe-cell {
+    height: 25px;
+    width: 25px;
+    border-left: 2px solid lightgray;
+    border-top: 2px solid lightgray;
+    background-color: lightblue
+}
+
+
+.danger-cell {
+    height: 25px;
+    width: 25px;
+    border-left: 2px solid lightgray;
+    border-top: 2px solid lightgray;
+    background-color: lightcoral;
+}
+
+.unsure-cell {
+    height: 25px;
+    width: 25px;
+    border-left: 2px solid lightgray;
+    border-top: 2px solid lightgray;
+    background-color: khaki;
+}
+
