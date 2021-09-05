@@ -1,13 +1,7 @@
 importScripts('./minesweeper.js');
 
-let board = null;
-let maxDepth = 1;
-let rules = [];
-let currentGen = 0;
-
-function initializeRulesFromBoard() { 
-    rules = [];
-    currentGen = 0;
+function initializeRulesFromBoard(board, useOverallRule) { 
+    let rules = [];
     let unrevealed = [];
     let remainingMines = board.mines;
     for(let row = 0; row < board.rows; row++) {
@@ -30,20 +24,25 @@ function initializeRulesFromBoard() {
                 if(minesInRule < 0) {
                     console.log('More mines adjacent to ' + row + ', ' + col + ' than is valid. Abandoning rule.');
                 } else if(locsInRule.length != 0) {
-                    rules.push(new Rule(minesInRule, locsInRule));
+                    rules.push(new Rule(minesInRule, locsInRule, loc));
                 }
             } else {
                 unrevealed.push(loc);
             }
         }
     }
+    
     // This rule is deduced from the total number of mines.
-    rules.push(new Rule(remainingMines, unrevealed));
-    currentGen = 1;
+    // This rule causes the AI to use exponentially more compute power in generations past the first.
+    if(useOverallRule) {
+        rules.push(new Rule(remainingMines, unrevealed));
+    }
     console.log('Finished calculating generation 0 rules.');
+
+    return rules;
 }
 
-function calculateNewGenerationsRules() {
+function calculateNewGenerationsRules(rules) {
     let newRules = [];
     rules.forEach(rule => {
         rules.forEach(otherRule => {
@@ -71,26 +70,20 @@ function calculateNewGenerationsRules() {
         rules.push(rule);
     });
     console.log('Finished calculating generation ' + currentGen + ' rules.');
-}
 
-function updateBoardOdds() {
-    rules.forEach(rule => {
-        let ruleOdds = rule.mines / parseFloat(rule.locations.length);
-        rule.locations.forEach(location => {
-            if(location.odds == null || location.odds > ruleOdds) {
-                location.odds = ruleOdds;
-                board.arr[location.row][location.col].odds = ruleOdds;
-            }
-        });
-    });
+    return rules;
 }
 
 class Rule {
 
-    constructor(mines, locations, presorted = false) {
+    constructor(mines, locations, parentSquare = null, primaryParent = null, secondaryParent = null, presorted = false) {
         this.mines = mines;
         this.locations = locations;
         this.generation = currentGen;
+        // parentSquare, primaryParent, and secondaryParent should only all be null for the parent rule.
+        this.parentSquare = parentSquare;
+        this.primaryParent = primaryParent;
+        this.secondaryParent = secondaryParent
         if(!presorted) {
             this.locations.sort(Location.compareLocations);
         }
@@ -139,10 +132,16 @@ class Rule {
             locIndex++;
         }
 
-        return newLocations.length > 0 ? new Rule(newMines, newLocations, true) : null;
+        return newLocations.length > 0 ? new Rule(newMines, newLocations, null, this, otherRule, true) : null;
     }
 }
 
+function addRulesToBoard(board, rules) {
+
+    return board;
+}
+
+//TODO: Delete this. It's a bad idea.
 function sleep(delay) {
     var start = new Date().getTime();
     while (new Date().getTime() < start + delay);
@@ -150,17 +149,19 @@ function sleep(delay) {
 
 onmessage = function(msg) {
     if(msg.data.action == 'START') {
-        board = new Board(msg.data.boardArr);
-        maxDepth = msg.data.maxDepth;
+        let board = new Board(msg.data.boardArr);
+        let maxDepth = msg.data.maxDepth;
         console.log('Starting AI with a max depth of ' + maxDepth);
-        initializeRulesFromBoard();
-        for(; currentGen <= maxDepth; currentGen++) {
-            calculateNewGenerationsRules();
-            updateBoardOdds();
-            postMessage({action:'UPDATE_ODDS', boardArr:board.arr, currentDepth:currentGen})
+        let rules = initializeRulesFromBoard(board, useOverallRule);
+        addRulesToBoard(board, rules);
+        postMessage({action:'NEW_RULES', boardArr:board.arr, currentDepth:currentGen})
+        for(let currentGen = 1; currentGen <= maxDepth; currentGen++) {
+            calculateNewGenerationsRules(rules);
+            addRulesToBoard(board, rules);
+            postMessage({action:'NEW_RULES', boardArr:board.arr, currentDepth:currentGen})
             sleep(3000);
         }
-        console.log('Ai finished.')
-        postMessage({action:'FINISH'});
     }
+    console.log('AI finished.')
+    postMessage({action:'FINISH'});
 }
