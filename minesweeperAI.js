@@ -24,7 +24,7 @@ function initializeRulesFromBoard(board, useOverallRule) {
                 if(minesInRule < 0) {
                     console.log('More mines adjacent to ' + row + ', ' + col + ' than is valid. Abandoning rule.');
                 } else if(locsInRule.length != 0) {
-                    rules.push(new Rule(minesInRule, locsInRule, loc));
+                    rules.push(new Rule(minesInRule, locsInRule, 0, loc));
                 }
             } else {
                 unrevealed.push(loc);
@@ -35,30 +35,30 @@ function initializeRulesFromBoard(board, useOverallRule) {
     // This rule is deduced from the total number of mines.
     // This rule causes the AI to use exponentially more compute power in generations past the first.
     if(useOverallRule) {
-        rules.push(new Rule(remainingMines, unrevealed));
+        rules.push(new Rule(remainingMines, unrevealed, 0));
     }
     console.log('Finished calculating generation 0 rules.');
 
     return rules;
 }
 
-function calculateNewGenerationsRules(rules) {
+function calculateNewGenerationsRules(rules, currentGen) {
     let newRules = [];
     rules.forEach(rule => {
         rules.forEach(otherRule => {
             if(rule.generation != currentGen - 1 && otherRule.generation != currentGen - 1) {
                 return; // This potential rule was already calculated in a previous generation.
             }
-            let newRule = rule.getPotentialNewRule(otherRule);
+            let newRule = rule.getPotentialNewRule(otherRule, currentGen);
             if(newRule != null && newRule.locations.length > 0) {
                 // These two four loops prevent duplicate rules from entering the list.
                 for(let i = 0; i < newRules.length; i++) {
-                    if(newRules[i].hash == newRule.hash) {
+                    if(newRules[i].equivalentRule(newRule)) {
                         return;
                     }
                 }
                 for(let i = 0; i < rules.length; i++) {
-                    if(rules[i].hash == newRule.hash) {
+                    if(rules[i].equivalentRule(newRule)) {
                         return;
                     }
                 }
@@ -74,73 +74,6 @@ function calculateNewGenerationsRules(rules) {
     return rules;
 }
 
-class Rule {
-
-    constructor(mines, locations, parentSquare = null, primaryParent = null, secondaryParent = null, presorted = false) {
-        this.mines = mines;
-        this.locations = locations;
-        this.generation = currentGen;
-        // parentSquare, primaryParent, and secondaryParent should only all be null for the parent rule.
-        this.parentSquare = parentSquare;
-        this.primaryParent = primaryParent;
-        this.secondaryParent = secondaryParent
-        if(!presorted) {
-            this.locations.sort(Location.compareLocations);
-        }
-        this.updateHash();
-    }
-
-    updateHash() {
-        let hash = String(this.mines).padStart(String(board.mines).length, '0');
-        this.locations.forEach(location => {
-            hash += String(location.row).padStart(String(board.rows).length, '0') + String(location.col).padStart(String(board.cols).length, '0');
-        });
-        this.hash = hash;
-    }
-
-    getPotentialNewRule(otherRule) {
-        if(otherRule.locations.length > this.locations.length) {
-            return null;
-        }
-
-        let newMines = this.mines - otherRule.mines;
-        let newLocations = [];
-        let locIndex = 0;
-        let otherLocIndex = 0;
-        let otherLocations = otherRule.locations;
-
-        while(otherLocIndex < otherLocations.length) {
-
-            if(locIndex >= this.locations.length) {
-                return null;
-            }
-
-            let comparison = Location.compareLocations(this.locations[locIndex], otherLocations[otherLocIndex]);
-
-            if(comparison == -1) {
-                newLocations.push(this.locations[locIndex]);
-                locIndex++;
-            }else if(comparison == 1) {
-                return null;
-            } else if(comparison == 0) {
-                locIndex++;
-                otherLocIndex++;
-            }
-        }
-        while(locIndex < this.locations.length) {
-            newLocations.push(this.locations[locIndex])
-            locIndex++;
-        }
-
-        return newLocations.length > 0 ? new Rule(newMines, newLocations, null, this, otherRule, true) : null;
-    }
-}
-
-function addRulesToBoard(board, rules) {
-
-    return board;
-}
-
 //TODO: Delete this. It's a bad idea.
 function sleep(delay) {
     var start = new Date().getTime();
@@ -152,14 +85,14 @@ onmessage = function(msg) {
         let board = new Board(msg.data.boardArr);
         let maxDepth = msg.data.maxDepth;
         console.log('Starting AI with a max depth of ' + maxDepth);
-        let rules = initializeRulesFromBoard(board, useOverallRule);
-        addRulesToBoard(board, rules);
-        postMessage({action:'NEW_RULES', boardArr:board.arr, currentDepth:currentGen})
+        let rules = initializeRulesFromBoard(board, msg.data.useOverallRule);
+        Rule.addRulesToBoard(board, rules);
+        postMessage({action:'NEW_RULES', boardArr:board.arr, currentDepth:0})
         for(let currentGen = 1; currentGen <= maxDepth; currentGen++) {
-            calculateNewGenerationsRules(rules);
-            addRulesToBoard(board, rules);
+            calculateNewGenerationsRules(rules, currentGen);
+            Rule.addRulesToBoard(board, rules);
             postMessage({action:'NEW_RULES', boardArr:board.arr, currentDepth:currentGen})
-            sleep(3000);
+            // sleep(3000);
         }
     }
     console.log('AI finished.')

@@ -7,7 +7,7 @@ class Location {
 		this.adjacentMines = adjacentMines;
 		this.isRevealed = isRevealed;
         this.isMarked = isMarked;
-        this.odds = null;
+        this.rules = [];
 	}
 
     
@@ -132,4 +132,89 @@ class Board {
         return 0 <= row && row < this.rows && 0 <= column && column < this.cols;
     }
 
+}
+
+class Rule {
+
+    static boardRows = 0;
+    static boardColumns = 0;
+
+    constructor(mines, locations, currentGen = 0, parentSquare = null, primaryParent = null, secondaryParent = null, presorted = false) {
+        this.mines = mines;
+        this.locations = locations;
+        this.generation = currentGen;
+        // parentSquare, primaryParent, and secondaryParent should only all be null for the parent rule.
+        this.parentSquare = parentSquare;
+        this.primaryParent = primaryParent;
+        this.secondaryParent = secondaryParent
+        if(!presorted) {
+            this.locations.sort(Location.compareLocations);
+        }
+    }
+
+    equivalentRule(otherRule) {
+        if(this.mines != otherRule.mines || this.locations.length != otherRule.locations.length) {
+            return false;
+        }
+
+        this.locations.forEach(loc => {
+            if(!otherRule.locations.includes(loc)) {
+                return false;
+            }
+        });
+
+        return true;
+    }
+
+    getPotentialNewRule(otherRule, currentGen) {
+        if(otherRule.locations.length > this.locations.length) {
+            return null;
+        }
+
+        let newMines = this.mines - otherRule.mines;
+        let newLocations = [];
+        let locIndex = 0;
+        let otherLocIndex = 0;
+        let otherLocations = otherRule.locations;
+
+        while(otherLocIndex < otherLocations.length) {
+
+            if(locIndex >= this.locations.length) {
+                return null;
+            }
+
+            let comparison = Location.compareLocations(this.locations[locIndex], otherLocations[otherLocIndex]);
+
+            if(comparison == -1) {
+                newLocations.push(this.locations[locIndex]);
+                locIndex++;
+            }else if(comparison == 1) {
+                return null;
+            } else if(comparison == 0) {
+                locIndex++;
+                otherLocIndex++;
+            }
+        }
+        while(locIndex < this.locations.length) {
+            newLocations.push(this.locations[locIndex])
+            locIndex++;
+        }
+
+        return newLocations.length > 0 ? new Rule(newMines, newLocations, currentGen, null, this, otherRule, true) : null;
+    }
+
+    static addRulesToBoard(board, rules) {
+        for(let row = 0; row < board.rows; row++) {
+            for(let col = 0; col < board.cols; col++) {
+                let loc = board.arr[row][col];
+                loc.rules = [];
+                rules.forEach(rule => {
+                    if(rule.locations.includes(loc)) {
+                        loc.rules.push(rule);
+                    }
+                });
+            }
+        }
+        return board;
+    }   
 }

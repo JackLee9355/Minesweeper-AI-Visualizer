@@ -7,7 +7,6 @@
 		<link rel="stylesheet" href="./main.css">
 
 		<script src="./minesweeper.js" type="text/javascript"></script>
-		<script src="./minesweeperAI.js" type="text/javascript"></script>
 		<script type="text/javascript">
 
 			let board = null;
@@ -75,15 +74,25 @@
 
 			function onMessage(message) {
 				if(message.data.action == 'NEW_RULES') {
-					let tempBoard = message.data.boardArr;
+					board = new Board(message.data.boardArr);
 					console.log('New board received.');
 					for(let row = 0; row < board.rows; row++) {
 						for(let col = 0; col < board.cols; col++) {
-							if(!tempBoard[row][col].isRevealed) {
-								let red = Math.round(tempBoard[row][col].odds * 255);
-								let blue = 255 - red;
-								let rgb = 'rgb(' + red + ',0,' + blue +')';
-								getLocationElement(tempBoard[row][col]).style.color = rgb;
+							let loc = board.arr[row][col];
+							if(!loc.isRevealed) {
+								let element = getLocationElement(loc);
+								if(loc.rules.length > 0) {
+									element.className = 'unsure-cell';
+								}
+								loc.rules.forEach(rule => {
+									if(rule.mines == 0) {
+										element.className = 'safe-cell';
+										return;
+									} else if(rule.mines == rule.locations.length) {
+										element.className = 'danger-cell';
+										return;
+									}
+								});
 							}
 						}
 					}
