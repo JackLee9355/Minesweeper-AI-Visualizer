@@ -76,30 +76,36 @@
 				if(message.data.action == 'NEW_RULES') {
 					board = new Board(message.data.boardArr);
 					console.log('New board received.');
-					for(let row = 0; row < board.rows; row++) {
-						for(let col = 0; col < board.cols; col++) {
-							let loc = board.arr[row][col];
-							if(!loc.isRevealed) {
-								let element = getLocationElement(loc);
-								if(loc.rules.length > 0) {
-									element.className = 'unsure-cell';
-								}
-								loc.rules.forEach(rule => {
-									if(rule.mines == 0) {
-										element.className = 'safe-cell';
-										return;
-									} else if(rule.mines == rule.locations.length) {
-										element.className = 'danger-cell';
-										return;
-									}
-								});
-							}
-						}
-					}
+					drawRules(message.data.currentDepth);
 				} else if(message.data.action == 'FINISH') {
 					console.log('Terminating AI worker.')
 					aiWorker.terminate();
 					aiWorker = null;
+				}
+			}
+
+			function drawRules(maxGeneration) {
+				for(let row = 0; row < board.rows; row++) {
+					for(let col = 0; col < board.cols; col++) {
+						let loc = board.arr[row][col];
+						let element = getLocationElement(loc);
+						let newClassName = "board-cell";
+						if(!loc.isRevealed) {
+							if(loc.rules.length > 0) {
+								newClassName = 'unsure board-cell';
+							}
+							loc.rules.forEach(rule => {
+								if(rule.mines == 0) {
+									newClassName = 'safe board-cell';
+									return;
+								} else if(rule.mines == rule.locations.length) {
+									newClassName = 'danger board-cell';
+									return;
+								}
+							});
+							element.className = newClassName;
+						}
+					}
 				}
 			}
 
@@ -143,15 +149,17 @@
 				</td>
 			</tr>
 		</table>
-		<button onclick="newGame(document.getElementById('rowInput').value,
-			document.getElementById('columnInput').value,
-			document.getElementById('mineInput').value);">
-			New Game
-		</button>
-		<button onclick="startAi(document.getElementById('maxDepth').value,
-		 	document.getElementById('overallRule').checked);">
-			Start Ai
-		</button>
+		<div>
+			<button onclick="newGame(document.getElementById('rowInput').value,
+				document.getElementById('columnInput').value,
+				document.getElementById('mineInput').value);">
+				New Game
+			</button>
+			<button onclick="startAi(document.getElementById('maxDepth').value,
+				document.getElementById('overallRule').checked);">
+				Start Ai
+			</button>
+		</div>
 		<br>
 		<br>
 		<table>
@@ -160,11 +168,17 @@
 					<div id="board">
 					</div>
 				</td>
-				<td>
+				<td style="padding: 25px;">
 					Other Info will go here.
 				</td>
 			</tr>
 		</table>
+
+		<div class="credits">
+			<a href="https://github.com/JackLee9355/Minesweeper-AI-Visualizer">Learn more here</a>
+			<br>
+			Made by Jack Lee (JackLee9355@gmail.com)
+		</div>
 	</body>
 
 	<script>

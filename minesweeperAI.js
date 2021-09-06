@@ -11,7 +11,7 @@ function initializeRulesFromBoard(board, useOverallRule) {
                 remainingMines--;
             }
 
-            if(loc.isRevealed) {
+            if(loc.isRevealed && !loc.isMine) {
                 let minesInRule = loc.adjacentMines;
                 let locsInRule = [];
                 board.getAdjacentSquares(loc).forEach(adjLoc => {
