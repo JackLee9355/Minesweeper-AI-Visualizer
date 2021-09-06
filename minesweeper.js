@@ -157,11 +157,11 @@ class Rule {
             return false;
         }
 
-        this.locations.forEach(loc => {
-            if(!otherRule.locations.includes(loc)) {
+        for(let i = 0; i < this.locations.length; i++) {
+            if(!otherRule.locations.includes(this.locations[i])) {
                 return false;
             }
-        });
+        }
 
         return true;
     }
