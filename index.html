@@ -57,10 +57,40 @@
 			}
 
 			function cellClick(cellClicked) {
-				let toReveal = board.getSquaresToReveal(board.arr[cellClicked.getAttribute('row')][cellClicked.getAttribute('column')]);
-				toReveal.forEach(location => {
+				let locationClicked = board.arr[cellClicked.getAttribute('row')][cellClicked.getAttribute('column')];
+				displaySquareInfo(locationClicked);
+			}
+
+			function revealLocation(toReveal) {
+				board.getSquaresToReveal(toReveal).forEach(location => {
 					getLocationElement(location).innerText = location.isMine ? 'M' : location.adjacentMines;
 				});
+			}
+
+			function getSelectedLocation() {
+				if(!isLocationSelected()) {
+					return null;
+				}
+
+				let infoDiv = document.getElementById('additionalInfo');
+				return board.arr[infoDiv.getAttribute('row')][infoDiv.getAttribute('col')];
+			}
+
+			function isLocationSelected() {
+				let infoDiv = document.getElementById('additionalInfo');
+				return infoDiv.hasAttribute('row') && infoDiv.hasAttribute('col');
+			}
+
+			function toggleLocationMark(location) {
+				if(!location.isRevealed) {
+					if(!location.isMarked) {	
+						location.isMarked = true;
+						getLocationElement(location).innerText = 'F';
+					} else {
+						location.isMarked = false;
+						getLocationElement(location).innerText = '?';
+					}
+				}
 			}
 
 			function startAi(maxDepth, useOverallRule) {
@@ -76,7 +106,7 @@
 				if(message.data.action == 'NEW_RULES') {
 					board = new Board(message.data.boardArr);
 					console.log('New board received.');
-					drawRules(message.data.currentDepth);
+					drawAllCells();
 				} else if(message.data.action == 'FINISH') {
 					console.log('Terminating AI worker.')
 					aiWorker.terminate();
@@ -84,29 +114,75 @@
 				}
 			}
 
-			function drawRules(maxGeneration) {
+			function drawAllCells() {
 				for(let row = 0; row < board.rows; row++) {
 					for(let col = 0; col < board.cols; col++) {
-						let loc = board.arr[row][col];
-						let element = getLocationElement(loc);
-						let newClassName = "board-cell";
-						if(!loc.isRevealed) {
-							if(loc.rules.length > 0) {
-								newClassName = 'unsure board-cell';
-							}
-							loc.rules.forEach(rule => {
-								if(rule.mines == 0) {
-									newClassName = 'safe board-cell';
-									return;
-								} else if(rule.mines == rule.locations.length) {
-									newClassName = 'danger board-cell';
-									return;
-								}
-							});
-							element.className = newClassName;
-						}
+						drawCell(board.arr[row][col]);
 					}
 				}
+			}
+
+			function drawCell(location) {
+				let element = getLocationElement(location);
+				let selectedLoc = getSelectedLocation();
+				let newClassName = 'board-cell';
+				if(Location.compareLocations(location, selectedLoc) == 0) {
+					newClassName = 'selected board-cell';
+				} else if(!location.isRevealed) {
+					if(location.rules.length > 0) {
+						newClassName = 'unsure board-cell';
+					}
+					location.rules.forEach(rule => {
+						if(rule.mines == 0) {
+							newClassName = 'safe board-cell';
+							return;
+						} else if(rule.mines == rule.locations.length) {
+							newClassName = 'danger board-cell';
+							return;
+						}
+					});
+				}
+				element.className = newClassName;
+			}
+
+			function displaySquareInfo(location) {
+				let infoDiv = document.getElementById('additionalInfo');
+				let prevLocation = getSelectedLocation();
+				infoDiv.setAttribute('row', location.row);
+				infoDiv.setAttribute('col', location.col);
+				if(prevLocation != null) {
+					drawCell(prevLocation);
+				}
+				drawCell(location);
+				infoDiv.innerHTML = `
+					<table>
+						<tr>
+							<td>
+								<button onclick="revealLocation(getSelectedLocation());">
+									Reveal Square
+								</button>
+							</td>
+							<td>
+								<button onclick="toggleLocationMark(getSelectedLocation());">
+									Toggle Flag
+								</button>
+							</td>
+						</tr>
+					</table>	
+				`;
+
+				location.rules.forEach(rule => {
+					div.appendChild(document.createElement('br'));
+				//	div.appendChild(generateRuleSummary(rule));
+				});
+			}
+
+			function displayRuleInfo() {
+
+			}
+
+			function generateRuleSummary() {
+
 			}
 
 		</script>
@@ -157,7 +233,7 @@
 			</button>
 			<button onclick="startAi(document.getElementById('maxDepth').value,
 				document.getElementById('overallRule').checked);">
-				Start Ai
+				Start AI
 			</button>
 		</div>
 		<br>
@@ -169,7 +245,9 @@
 					</div>
 				</td>
 				<td style="padding: 25px;">
-					Other Info will go here.
+					<div id="additionalInfo">
+						Other Info will go here.
+					</div>
 				</td>
 			</tr>
 		</table>

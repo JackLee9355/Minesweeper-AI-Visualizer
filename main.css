@@ -32,6 +32,9 @@ table {
     background-color: lightblue
 }
 
+.selected {
+    background-color: lightgreen;
+}
 
 .danger {
     background-color: lightcoral;
