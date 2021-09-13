@@ -133,10 +133,11 @@
 						newClassName = 'unsure board-cell';
 					}
 					location.rules.forEach(rule => {
-						if(rule.mines == 0) {
+
+						if(Rule.isSafe(rule)) {
 							newClassName = 'safe board-cell';
 							return;
-						} else if(rule.mines == rule.locations.length) {
+						} else if(Rule.isDangerous(rule)) {
 							newClassName = 'danger board-cell';
 							return;
 						}
@@ -172,8 +173,8 @@
 				`;
 
 				location.rules.forEach(rule => {
-					div.appendChild(document.createElement('br'));
-				//	div.appendChild(generateRuleSummary(rule));
+					infoDiv.appendChild(document.createElement('br'));
+					infoDiv.appendChild(generateRuleSummary(rule));
 				});
 			}
 
@@ -181,8 +182,18 @@
 
 			}
 
-			function generateRuleSummary() {
+			function generateRuleSummary(rule) {
+				let ruleDiv = document.createElement('div');
+				let newClass = 'unsure rule';
 
+				if(Rule.isSafe(rule)) {
+					newClass = 'safe rule';
+				} else if(Rule.isDangerous(rule)) {
+					newClass = 'danger rule';
+				}
+
+				ruleDiv.setAttribute('class', newClass);
+				return ruleDiv;
 			}
 
 		</script>
@@ -244,8 +255,8 @@
 					<div id="board">
 					</div>
 				</td>
-				<td style="padding: 25px;">
-					<div id="additionalInfo">
+				<td>
+					<div class="additional-info" id="additionalInfo">
 						Other Info will go here.
 					</div>
 				</td>

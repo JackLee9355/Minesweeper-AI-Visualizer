@@ -166,6 +166,14 @@ class Rule {
         return true;
     }
 
+    isSafe() {
+        Rule.isSafe(this);
+    }
+
+    isDangerous() {
+        Rule.isDangerous(this);
+    }
+
     getPotentialNewRule(otherRule, currentGen) {
         if(otherRule.locations.length > this.locations.length) {
             return null;
@@ -201,6 +209,14 @@ class Rule {
         }
 
         return newLocations.length > 0 ? new Rule(newMines, newLocations, currentGen, null, this, otherRule, true) : null;
+    }
+
+    static isSafe(rule) {
+        return rule.mines == 0;
+    }
+
+    static isDangerous(rule) {
+        return rule.mines == rule.locations.length;
     }
 
     static addRulesToBoard(board, rules) {
