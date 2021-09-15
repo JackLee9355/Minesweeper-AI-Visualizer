@@ -74,12 +74,6 @@ function calculateNewGenerationsRules(rules, currentGen) {
     return rules;
 }
 
-//TODO: Delete this. It's a bad idea.
-function sleep(delay) {
-    var start = new Date().getTime();
-    while (new Date().getTime() < start + delay);
-}
-
 onmessage = function(msg) {
     if(msg.data.action == 'START') {
         let board = new Board(msg.data.boardArr);

@@ -7,10 +7,7 @@ body {
 table {
     margin-left: auto;
     margin-right: auto;
-}
-
-.board-table {
-    background-color: white;
+    border-collapse: collapse;
 }
 
 .credits {
@@ -28,16 +25,18 @@ table {
     left: 0;
     right: 0;
     position: relative;
-    padding: 20px;
-    height: 50px;
+    font-size: small;
+    padding: 5px;
+    height: fit-content;
     width: 200px;
 }
 
 .board-cell {
     height: 25px;
     width: 25px;
-    border-left: 2px solid lightgray;
-    border-top: 2px solid lightgray;
+    border: 1px solid lightgray;
+    background-color: white;
+    box-shadow: 2px 2px 1px #aaaaaa;
 }
 
 .additional-info {

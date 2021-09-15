@@ -21,8 +21,22 @@
 				table.setAttribute('class', 'board-table');
 
 				let boardArr = [];
+				
+				// Creates a row containing the column headers.
+				let colHeaders = document.createElement('tr');
+				colHeaders.appendChild(document.createElement('td'));
+				for(let col = 1; col <= columns; col++) {
+					let colHeader = document.createElement('td');
+					colHeader.innerText = col;
+					colHeaders.appendChild(colHeader);
+				}
+				table.appendChild(colHeaders);
+				
 				for(let row = 0; row < rows; row++) {
 					let tableRow = document.createElement('tr');
+					let rowHeader = document.createElement('td');
+					rowHeader.innerText = row + 1;
+					tableRow.appendChild(rowHeader);
 					boardArr[row] = [];
 					for(let column = 0; column < columns; column++) {
 						let cell = document.createElement('td');
@@ -53,7 +67,8 @@
 
 			function getLocationElement(location) {
 				let table = document.getElementById('boardTable');
-				return table.rows[location.row].cells[location.col];
+				// Add 1 to these values because of the table headers.
+				return table.rows[location.row + 1].cells[location.col + 1]; 
 			}
 
 			function cellClick(cellClicked) {
@@ -193,6 +208,22 @@
 				}
 
 				ruleDiv.setAttribute('class', newClass);
+
+				let genDiv = document.createElement('div');
+				genDiv.innerText = 'Generation: ' + rule.generation;
+				ruleDiv.appendChild(genDiv);
+
+				let minesDiv = document.createElement('div');
+				minesDiv.innerText = 'Total Mines: ' + rule.mines;
+				ruleDiv.appendChild(minesDiv);
+
+				let locationsDiv = document.createElement('div');
+				locationsDiv.innerHTML = 'Amongst Locations: <br>'
+				rule.locations.forEach(loc => {
+					locationsDiv.innerHTML += '(' + loc.row + ',' + loc.col + ') '
+				});
+				ruleDiv.appendChild(locationsDiv);
+
 				return ruleDiv;
 			}
 
