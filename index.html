@@ -1,176 +1,181 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        
-        <title>Minesweeper AI</title>
-        <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-        <link rel="stylesheet" href="./main.css">
 
-        <script src="./minesweeper.js" type="text/javascript"></script>
-        <script type="text/javascript">
+<head>
 
-            let board = null;
-            let aiWorker = null;
+    <title>Minesweeper AI</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link rel="stylesheet" href="./main.css">
 
-            function newGame(numRows, numColumns, mines) {
-                rows = numRows;
-                columns = numColumns;
-                let tableDiv = document.getElementById('board');
-                let table = document.createElement('table');
-                table.setAttribute('id', 'boardTable');
-                table.setAttribute('class', 'board-table');
+    <script src="./minesweeper.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        let board = null;
+        let aiWorker = null;
 
-                let boardArr = [];
-                
-                // Creates a row containing the column headers.
-                let colHeaders = document.createElement('tr');
-                colHeaders.appendChild(document.createElement('td'));
-                for(let col = 1; col <= columns; col++) {
-                    let colHeader = document.createElement('td');
-                    colHeader.innerText = col;
-                    colHeaders.appendChild(colHeader);
+        function newGame(numRows, numColumns, mines) {
+            rows = numRows;
+            columns = numColumns;
+            let tableDiv = document.getElementById('board');
+            let table = document.createElement('table');
+            table.setAttribute('id', 'boardTable');
+            table.setAttribute('class', 'board-table');
+
+            let boardArr = [];
+
+            // Creates a row containing the column headers.
+            let colHeaders = document.createElement('tr');
+            colHeaders.appendChild(document.createElement('td'));
+            for (let col = 1; col <= columns; col++) {
+                let colHeader = document.createElement('td');
+                colHeader.innerText = col;
+                colHeaders.appendChild(colHeader);
+            }
+            table.appendChild(colHeaders);
+
+            for (let row = 0; row < rows; row++) {
+                let tableRow = document.createElement('tr');
+                let rowHeader = document.createElement('td');
+                rowHeader.innerText = row + 1;
+                tableRow.appendChild(rowHeader);
+                boardArr[row] = [];
+                for (let column = 0; column < columns; column++) {
+                    let cell = document.createElement('td');
+                    cell.setAttribute('row', row);
+                    cell.setAttribute('column', column);
+                    cell.setAttribute('class', 'board-cell');
+                    let location = new Location(row, column, false, 0, false);
+                    cell.innerText = '?';
+                    cell.setAttribute('onclick', 'cellClick(this);');
+                    boardArr[row][column] = location;
+                    tableRow.appendChild(cell);
                 }
-                table.appendChild(colHeaders);
-                
-                for(let row = 0; row < rows; row++) {
-                    let tableRow = document.createElement('tr');
-                    let rowHeader = document.createElement('td');
-                    rowHeader.innerText = row + 1;
-                    tableRow.appendChild(rowHeader);
-                    boardArr[row] = [];
-                    for(let column = 0; column < columns; column++) {
-                        let cell = document.createElement('td');
-                        cell.setAttribute('row', row);
-                        cell.setAttribute('column', column);
-                        cell.setAttribute('class', 'board-cell');
-                        let location = new Location(row, column, false, 0, false);
-                        cell.innerText = '?';
-                        cell.setAttribute('onclick', 'cellClick(this);');
-                        boardArr[row][column] = location;
-                        tableRow.appendChild(cell);
-                    }
-                    table.appendChild(tableRow);
-                }
-                board = new Board(boardArr);
+                table.appendChild(tableRow);
+            }
+            board = new Board(boardArr);
 
-                let oldTable = document.getElementById('boardTable');
-                if(oldTable != null) {
-                    tableDiv.replaceChild(table, oldTable);
+            let oldTable = document.getElementById('boardTable');
+            if (oldTable != null) {
+                tableDiv.replaceChild(table, oldTable);
+            } else {
+                tableDiv.appendChild(table)
+            }
+
+            board.distributeMines(mines);
+
+            return tableDiv;
+        }
+
+        function getLocationElement(location) {
+            let table = document.getElementById('boardTable');
+            // Add 1 to these values because of the table headers.
+            return table.rows[location.row + 1].cells[location.col + 1];
+        }
+
+        function cellClick(cellClicked) {
+            let locationClicked = board.arr[cellClicked.getAttribute('row')][cellClicked.getAttribute('column')];
+            displaySquareInfo(locationClicked);
+        }
+
+        function revealLocation(toReveal) {
+            board.getSquaresToReveal(toReveal).forEach(location => {
+                getLocationElement(location).innerText = location.isMine ? 'M' : location.adjacentMines;
+            });
+        }
+
+        function getSelectedLocation() {
+            if (!isLocationSelected()) {
+                return null;
+            }
+
+            let infoDiv = document.getElementById('additionalInfo');
+            return board.arr[infoDiv.getAttribute('row')][infoDiv.getAttribute('col')];
+        }
+
+        function isLocationSelected() {
+            let infoDiv = document.getElementById('additionalInfo');
+            return infoDiv.hasAttribute('row') && infoDiv.hasAttribute('col');
+        }
+
+        function toggleLocationMark(location) {
+            if (!location.isRevealed) {
+                if (!location.isMarked) {
+                    location.isMarked = true;
+                    getLocationElement(location).innerText = 'F';
                 } else {
-                    tableDiv.appendChild(table)
+                    location.isMarked = false;
+                    getLocationElement(location).innerText = '?';
                 }
-
-                board.distributeMines(mines);
-
-                return tableDiv;
             }
+        }
 
-            function getLocationElement(location) {
-                let table = document.getElementById('boardTable');
-                // Add 1 to these values because of the table headers.
-                return table.rows[location.row + 1].cells[location.col + 1]; 
+        function startAi(maxDepth, useOverallRule) {
+            if (aiWorker != null) {
+                aiWorker.terminate();
             }
+            aiWorker = new Worker('./minesweeperAI.js');
+            aiWorker.onmessage = onMessage;
+            aiWorker.postMessage({
+                action: 'START',
+                boardArr: board.arr,
+                maxDepth: maxDepth,
+                useOverallRule: useOverallRule
+            });
+        }
 
-            function cellClick(cellClicked) {
-                let locationClicked = board.arr[cellClicked.getAttribute('row')][cellClicked.getAttribute('column')];
-                displaySquareInfo(locationClicked);
+        function onMessage(message) {
+            if (message.data.action == 'NEW_RULES') {
+                board = new Board(message.data.boardArr);
+                console.log('New board received.');
+                drawAllCells();
+            } else if (message.data.action == 'FINISH') {
+                console.log('Terminating AI worker.')
+                aiWorker.terminate();
+                aiWorker = null;
             }
+        }
 
-            function revealLocation(toReveal) {
-                board.getSquaresToReveal(toReveal).forEach(location => {
-                    getLocationElement(location).innerText = location.isMine ? 'M' : location.adjacentMines;
+        function drawAllCells() {
+            for (let row = 0; row < board.rows; row++) {
+                for (let col = 0; col < board.cols; col++) {
+                    drawCell(board.arr[row][col]);
+                }
+            }
+        }
+
+        function drawCell(location) {
+            let element = getLocationElement(location);
+            let selectedLoc = getSelectedLocation();
+            let newClassName = 'board-cell';
+            if (Location.compareLocations(location, selectedLoc) == 0) {
+                newClassName = 'selected board-cell';
+            } else if (!location.isRevealed) {
+                if (location.rules.length > 0) {
+                    newClassName = 'unsure board-cell';
+                }
+                location.rules.forEach(rule => {
+
+                    if (Rule.isSafe(rule)) {
+                        newClassName = 'safe board-cell';
+                        return;
+                    } else if (Rule.isDangerous(rule)) {
+                        newClassName = 'danger board-cell';
+                        return;
+                    }
                 });
             }
+            element.className = newClassName;
+        }
 
-            function getSelectedLocation() {
-                if(!isLocationSelected()) {
-                    return null;
-                }
-
-                let infoDiv = document.getElementById('additionalInfo');
-                return board.arr[infoDiv.getAttribute('row')][infoDiv.getAttribute('col')];
+        function displaySquareInfo(location) {
+            let infoDiv = document.getElementById('additionalInfo');
+            let prevLocation = getSelectedLocation();
+            infoDiv.setAttribute('row', location.row);
+            infoDiv.setAttribute('col', location.col);
+            if (prevLocation != null) {
+                drawCell(prevLocation);
             }
-
-            function isLocationSelected() {
-                let infoDiv = document.getElementById('additionalInfo');
-                return infoDiv.hasAttribute('row') && infoDiv.hasAttribute('col');
-            }
-
-            function toggleLocationMark(location) {
-                if(!location.isRevealed) {
-                    if(!location.isMarked) {	
-                        location.isMarked = true;
-                        getLocationElement(location).innerText = 'F';
-                    } else {
-                        location.isMarked = false;
-                        getLocationElement(location).innerText = '?';
-                    }
-                }
-            }
-
-            function startAi(maxDepth, useOverallRule) {
-                if(aiWorker != null) {
-                    aiWorker.terminate();
-                }
-                aiWorker = new Worker('./minesweeperAI.js');
-                aiWorker.onmessage = onMessage;
-                aiWorker.postMessage({action:'START', boardArr:board.arr, maxDepth:maxDepth, useOverallRule:useOverallRule});
-            }
-
-            function onMessage(message) {
-                if(message.data.action == 'NEW_RULES') {
-                    board = new Board(message.data.boardArr);
-                    console.log('New board received.');
-                    drawAllCells();
-                } else if(message.data.action == 'FINISH') {
-                    console.log('Terminating AI worker.')
-                    aiWorker.terminate();
-                    aiWorker = null;
-                }
-            }
-
-            function drawAllCells() {
-                for(let row = 0; row < board.rows; row++) {
-                    for(let col = 0; col < board.cols; col++) {
-                        drawCell(board.arr[row][col]);
-                    }
-                }
-            }
-
-            function drawCell(location) {
-                let element = getLocationElement(location);
-                let selectedLoc = getSelectedLocation();
-                let newClassName = 'board-cell';
-                if(Location.compareLocations(location, selectedLoc) == 0) {
-                    newClassName = 'selected board-cell';
-                } else if(!location.isRevealed) {
-                    if(location.rules.length > 0) {
-                        newClassName = 'unsure board-cell';
-                    }
-                    location.rules.forEach(rule => {
-
-                        if(Rule.isSafe(rule)) {
-                            newClassName = 'safe board-cell';
-                            return;
-                        } else if(Rule.isDangerous(rule)) {
-                            newClassName = 'danger board-cell';
-                            return;
-                        }
-                    });
-                }
-                element.className = newClassName;
-            }
-
-            function displaySquareInfo(location) {
-                let infoDiv = document.getElementById('additionalInfo');
-                let prevLocation = getSelectedLocation();
-                infoDiv.setAttribute('row', location.row);
-                infoDiv.setAttribute('col', location.col);
-                if(prevLocation != null) {
-                    drawCell(prevLocation);
-                }
-                drawCell(location);
-                infoDiv.innerHTML = `
+            drawCell(location);
+            infoDiv.innerHTML = `
                     <table>
                         <tr>
                             <td>
@@ -187,122 +192,123 @@
                     </table>	
                 `;
 
-                location.rules.forEach(rule => {
-                    infoDiv.appendChild(document.createElement('br'));
-                    infoDiv.appendChild(generateRuleSummary(rule));
-                });
+            location.rules.forEach(rule => {
+                infoDiv.appendChild(document.createElement('br'));
+                infoDiv.appendChild(generateRuleSummary(rule));
+            });
+        }
+
+        function displayRuleInfo() {
+
+        }
+
+        function generateRuleSummary(rule) {
+            let ruleDiv = document.createElement('div');
+            let newClass = 'unsure rule';
+
+            if (Rule.isSafe(rule)) {
+                newClass = 'safe rule';
+            } else if (Rule.isDangerous(rule)) {
+                newClass = 'danger rule';
             }
 
-            function displayRuleInfo() {
+            ruleDiv.setAttribute('class', newClass);
 
-            }
+            let genDiv = document.createElement('div');
+            genDiv.innerText = 'Generation: ' + rule.generation;
+            ruleDiv.appendChild(genDiv);
 
-            function generateRuleSummary(rule) {
-                let ruleDiv = document.createElement('div');
-                let newClass = 'unsure rule';
+            let minesDiv = document.createElement('div');
+            minesDiv.innerText = 'Total Mines: ' + rule.mines;
+            ruleDiv.appendChild(minesDiv);
 
-                if(Rule.isSafe(rule)) {
-                    newClass = 'safe rule';
-                } else if(Rule.isDangerous(rule)) {
-                    newClass = 'danger rule';
-                }
+            let locationsDiv = document.createElement('div');
+            locationsDiv.innerHTML = 'Amongst Locations: <br>'
+            rule.locations.forEach(loc => {
+                locationsDiv.innerHTML += '(' + loc.row + ',' + loc.col + ') '
+            });
+            ruleDiv.appendChild(locationsDiv);
 
-                ruleDiv.setAttribute('class', newClass);
+            return ruleDiv;
+        }
+    </script>
+</head>
 
-                let genDiv = document.createElement('div');
-                genDiv.innerText = 'Generation: ' + rule.generation;
-                ruleDiv.appendChild(genDiv);
-
-                let minesDiv = document.createElement('div');
-                minesDiv.innerText = 'Total Mines: ' + rule.mines;
-                ruleDiv.appendChild(minesDiv);
-
-                let locationsDiv = document.createElement('div');
-                locationsDiv.innerHTML = 'Amongst Locations: <br>'
-                rule.locations.forEach(loc => {
-                    locationsDiv.innerHTML += '(' + loc.row + ',' + loc.col + ') '
-                });
-                ruleDiv.appendChild(locationsDiv);
-
-                return ruleDiv;
-            }
-
-        </script>
-    </head>
-    <body>
-        <br>
-        <table>
-            <tr>
-                <td>
-                    Rows:
-                </td>
-                <td>
-                    Columns:
-                </td>
-                <td>
-                    Mines:
-                </td>
-                <td>
-                    Max AI Depth:
-                </td>
-                <td>
-                    Overall Rule:
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <input type="text" id="rowInput" value="12"></input>
-                </td>
-                <td>
-                    <input type="text" id="columnInput" value="12"></input>
-                </td>
-                <td>
-                    <input type="text" id="mineInput" value="30"></input>
-                </td>
-                <td>
-                    <input type="text" id="maxDepth" value="4"></input>
-                </td>
-                <td>
-                    <input type="checkbox" id="overallRule"></input>
-                </td>
-            </tr>
-        </table>
-        <div>
-            <button onclick="newGame(document.getElementById('rowInput').value,
+<body>
+    <br>
+    <table>
+        <tr>
+            <td>
+                Rows:
+            </td>
+            <td>
+                Columns:
+            </td>
+            <td>
+                Mines:
+            </td>
+            <td>
+                Max AI Depth:
+            </td>
+            <td>
+                Overall Rule:
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input type="text" id="rowInput" value="12"></input>
+            </td>
+            <td>
+                <input type="text" id="columnInput" value="12"></input>
+            </td>
+            <td>
+                <input type="text" id="mineInput" value="30"></input>
+            </td>
+            <td>
+                <input type="text" id="maxDepth" value="4"></input>
+            </td>
+            <td>
+                <input type="checkbox" id="overallRule"></input>
+            </td>
+        </tr>
+    </table>
+    <div>
+        <button onclick="newGame(document.getElementById('rowInput').value,
                 document.getElementById('columnInput').value,
                 document.getElementById('mineInput').value);">
-                New Game
-            </button>
-            <button onclick="startAi(document.getElementById('maxDepth').value,
+            New Game
+        </button>
+        <button onclick="startAi(document.getElementById('maxDepth').value,
                 document.getElementById('overallRule').checked);">
-                Start AI
-            </button>
-        </div>
-        <br>
-        <br>
-        <table>
-            <tr>
-                <td>
-                    <div id="board">
-                    </div>
-                </td>
-                <td>
-                    <div class="additional-info" id="additionalInfo">
-                        Other Info will go here.
-                    </div>
-                </td>
-            </tr>
-        </table>
+            Start AI
+        </button>
+    </div>
+    <br>
+    <br>
+    <table>
+        <tr>
+            <td>
+                <div id="board">
+                </div>
+            </td>
+            <td>
+                <div class="additional-info" id="additionalInfo">
+                    Other Info will go here.
+                </div>
+            </td>
+        </tr>
+    </table>
 
-        <div class="credits">
-            <a href="https://github.com/JackLee9355/Minesweeper-AI-Visualizer">Learn more here</a>
-            <br>
-            Made by Jack Lee (JackLee9355@gmail.com)
-        </div>
-    </body>
+    <div class="credits">
+        <a href="https://github.com/JackLee9355/Minesweeper-AI-Visualizer">Learn more here</a>
+        <br>
+        Made by Jack Lee (JackLee9355@gmail.com)
+    </div>
+</body>
 
-    <script>
-        // Set up the default board.
-        newGame(12, 12, 30);
-    </script>
+<script>
+    // Set up the default board.
+    newGame(12, 12, 30);
+</script>
+
 </html>

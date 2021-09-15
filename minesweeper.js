@@ -10,14 +10,14 @@ class Location {
         this.rules = [];
     }
 
-    
+
     static compareLocations(loc, otherLoc) {
-        if(loc.row > otherLoc.row) {
+        if (loc.row > otherLoc.row) {
             return 1;
-        }else if(loc.row == otherLoc.row) {
-            if(loc.col > otherLoc.col) {
+        } else if (loc.row == otherLoc.row) {
+            if (loc.col > otherLoc.col) {
                 return 1;
-            } else if(loc.col == otherLoc.col) {
+            } else if (loc.col == otherLoc.col) {
                 return 0;
             }
         }
@@ -35,9 +35,9 @@ class Board {
         this.mines = 0;
 
         //Sets the mines to the correct count
-        for(let col = 0; col < this.cols; col++) {
-            for(let row = 0; row < this.rows; row++) {
-                if(arr[row][col].isMine) {
+        for (let col = 0; col < this.cols; col++) {
+            for (let row = 0; row < this.rows; row++) {
+                if (arr[row][col].isMine) {
                     this.mines++;
                 }
             }
@@ -47,12 +47,12 @@ class Board {
     distributeMines(mines) {
         let uniquePositions = this.rows * this.cols;
         let spaces = new Set();
-        if(uniquePositions < mines) {
+        if (uniquePositions < mines) {
             console.log('More mines than locations on the board');
             return;
         }
 
-        while(spaces.size < mines) {
+        while (spaces.size < mines) {
             spaces.add(Math.floor(Math.random() * uniquePositions));
         }
 
@@ -68,13 +68,13 @@ class Board {
 
     updateAdjacent() {
         // Loops through all the mines.
-        for(let column = 0; column < this.cols; column++) {
-            for(let row = 0; row < this.rows; row++) {
+        for (let column = 0; column < this.cols; column++) {
+            for (let row = 0; row < this.rows; row++) {
                 let loc = this.arr[row][column];
                 loc.adjacentMines = 0;
 
                 this.getAdjacentSquares(loc).forEach(adjLoc => {
-                    if(adjLoc.isMine) {
+                    if (adjLoc.isMine) {
                         loc.adjacentMines++;
                     }
                 });
@@ -87,17 +87,17 @@ class Board {
         let toReveal = [];
         let toReturn = [];
         toReveal.push(location);
-        while(toReveal.length > 0) {
+        while (toReveal.length > 0) {
             let currentLoc = toReveal.pop();
             toReturn.push(currentLoc);
             currentLoc.isRevealed = true;
-            if(!currentLoc.isMine) {
+            if (!currentLoc.isMine) {
 
                 // Start a BFS to reveal mines adjacent to 0 squares.
-                if(currentLoc.adjacentMines == 0) {
+                if (currentLoc.adjacentMines == 0) {
 
                     this.getAdjacentSquares(currentLoc).forEach(adjLoc => {
-                        if(!adjLoc.isRevealed) {
+                        if (!adjLoc.isRevealed) {
                             toReveal.push(adjLoc);
                         }
                     });
@@ -117,7 +117,7 @@ class Board {
                 let rowToCheck = row + rowChange;
                 let columnToCheck = column + columnChange;
 
-                if((rowChange == 0 && columnChange == 0) || !this.withinBoard(rowToCheck, columnToCheck)) {
+                if ((rowChange == 0 && columnChange == 0) || !this.withinBoard(rowToCheck, columnToCheck)) {
                     return;
                 }
 
@@ -147,18 +147,18 @@ class Rule {
         this.parentSquare = parentSquare;
         this.primaryParent = primaryParent;
         this.secondaryParent = secondaryParent
-        if(!presorted) {
+        if (!presorted) {
             this.locations.sort(Location.compareLocations);
         }
     }
 
     equivalentRule(otherRule) {
-        if(this.mines != otherRule.mines || this.locations.length != otherRule.locations.length) {
+        if (this.mines != otherRule.mines || this.locations.length != otherRule.locations.length) {
             return false;
         }
 
-        for(let i = 0; i < this.locations.length; i++) {
-            if(!otherRule.locations.includes(this.locations[i])) {
+        for (let i = 0; i < this.locations.length; i++) {
+            if (!otherRule.locations.includes(this.locations[i])) {
                 return false;
             }
         }
@@ -175,7 +175,7 @@ class Rule {
     }
 
     getPotentialNewRule(otherRule, currentGen) {
-        if(otherRule.locations.length > this.locations.length) {
+        if (otherRule.locations.length > this.locations.length) {
             return null;
         }
 
@@ -185,25 +185,25 @@ class Rule {
         let otherLocIndex = 0;
         let otherLocations = otherRule.locations;
 
-        while(otherLocIndex < otherLocations.length) {
+        while (otherLocIndex < otherLocations.length) {
 
-            if(locIndex >= this.locations.length) {
+            if (locIndex >= this.locations.length) {
                 return null;
             }
 
             let comparison = Location.compareLocations(this.locations[locIndex], otherLocations[otherLocIndex]);
 
-            if(comparison == -1) {
+            if (comparison == -1) {
                 newLocations.push(this.locations[locIndex]);
                 locIndex++;
-            }else if(comparison == 1) {
+            } else if (comparison == 1) {
                 return null;
-            } else if(comparison == 0) {
+            } else if (comparison == 0) {
                 locIndex++;
                 otherLocIndex++;
             }
         }
-        while(locIndex < this.locations.length) {
+        while (locIndex < this.locations.length) {
             newLocations.push(this.locations[locIndex])
             locIndex++;
         }
@@ -220,17 +220,17 @@ class Rule {
     }
 
     static addRulesToBoard(board, rules) {
-        for(let row = 0; row < board.rows; row++) {
-            for(let col = 0; col < board.cols; col++) {
+        for (let row = 0; row < board.rows; row++) {
+            for (let col = 0; col < board.cols; col++) {
                 let loc = board.arr[row][col];
                 loc.rules = [];
                 rules.forEach(rule => {
-                    if(rule.locations.includes(loc)) {
+                    if (rule.locations.includes(loc)) {
                         loc.rules.push(rule);
                     }
                 });
             }
         }
         return board;
-    }   
+    }
 }
