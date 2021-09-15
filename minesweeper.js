@@ -1,14 +1,14 @@
 class Location {
 
-	constructor(row, col, isMine = false, adjacentMines = 0, isRevealed = false, isMarked = false) {
-		this.row = row;
-		this.col = col;
-		this.isMine = isMine;
-		this.adjacentMines = adjacentMines;
-		this.isRevealed = isRevealed;
+    constructor(row, col, isMine = false, adjacentMines = 0, isRevealed = false, isMarked = false) {
+        this.row = row;
+        this.col = col;
+        this.isMine = isMine;
+        this.adjacentMines = adjacentMines;
+        this.isRevealed = isRevealed;
         this.isMarked = isMarked;
         this.rules = [];
-	}
+    }
 
     
     static compareLocations(loc, otherLoc) {
