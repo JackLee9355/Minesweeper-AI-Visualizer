@@ -250,9 +250,12 @@
             <td>
                 Max AI Depth:
             </td>
-            <td>
-                Overall Rule:
-            </td>
+            <!--
+                Commenting out for now due to unsatisfactory performance. 
+                <td>
+                    Overall Rule:
+                </td>
+            -->
         </tr>
         <tr>
             <td>
@@ -267,9 +270,11 @@
             <td>
                 <input type="text" id="maxDepth" value="4"></input>
             </td>
-            <td>
-                <input type="checkbox" id="overallRule"></input>
-            </td>
+            <!--
+                <td>
+                    <input type="checkbox" id="overallRule"></input>
+                </td>
+            -->
         </tr>
     </table>
     <div>
@@ -279,7 +284,7 @@
             New Game
         </button>
         <button onclick="startAi(document.getElementById('maxDepth').value,
-                document.getElementById('overallRule').checked);">
+                false);">
             Start AI
         </button>
     </div>
